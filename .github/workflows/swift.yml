@@ -13,7 +13,6 @@ jobs:
     runs-on: macos-latest
     
     steps:
-    - name: Checkout SDK Source
     - uses: actions/checkout@v2
       with:
         repository: vedantgurav/fieldday-ios-sdk-source-actions-test
