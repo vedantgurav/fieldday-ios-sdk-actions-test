@@ -28,10 +28,7 @@ jobs:
         run: brew install unsignedapps/tap/swift-create-xcframework
 
       - name: Clone the Source Code Repo
-        run: |
-          git clone https://github.com/vedantgurav/fieldday-ios-sdk-source-actions-test.git
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: git clone https://github.com/vedantgurav/fieldday-ios-sdk-source-actions-test.git
 
       - name: Build XCFramework and Create Zip
         run: |
