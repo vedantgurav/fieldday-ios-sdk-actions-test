@@ -24,9 +24,7 @@ jobs:
 
       - name: Clone the Source Code Repo with Authentication
         run: |
-          git clone https://github.com/vedantgurav/fieldday-ios-sdk-source-actions-test.git
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/vedantgurav/fieldday-ios-sdk-source-actions-test.git
 
       - name: Build XCFramework and Create Zip
         run: |
@@ -44,17 +42,15 @@ jobs:
           cd fieldday-ios-sdk-source-actions-test
           shasum -a 256 "FieldDay-${{ github.event.inputs.version }}.zip" | awk '{ print $1 }'
 
-      - name: Update Package.swift in the SDK Repo
+      - name: Update Package.swift in the SDK Repo with Authentication
         run: |
-          git clone https://github.com/vedantgurav/fieldday-ios-sdk-actions-test.git
+          git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/vedantgurav/fieldday-ios-sdk-actions-test.git
           cd fieldday-ios-sdk-actions-test
           sed -i '' "s|https://github.com/fieldday-ai/fieldday-ios-sdk/releases/download/.*/FieldDay-.*.zip|https://github.com/fieldday-ai/fieldday-ios-sdk/releases/download/${{ github.event.inputs.version }}/FieldDay-${{ github.event.inputs.version }}.zip|g" Package.swift
           sed -i '' "s|checksum: \".*\"|checksum: \"${{ steps.checksum.outputs.checksum }}\"|g" Package.swift
           git add Package.swift
           git commit -m "Update Package.swift for version ${{ github.event.inputs.version }}"
           git push origin main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release in SDK Repo
         uses: ncipollo/release-action@v1
