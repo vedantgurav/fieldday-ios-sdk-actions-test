@@ -14,25 +14,19 @@ jobs:
     steps:
       - name: Checkout the primary repository (Actions Repo)
         uses: actions/checkout@v3
-        with:
-          repository: vedantgurav/fieldday-ios-sdk-actions-test
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Homebrew (if needed)
-        run: |
-          if ! command -v brew &> /dev/null; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          fi
-
-      - name: Install swift-create-xcframework
+      - name: Install swift-create-xcframework via SPM
         run: |
           git clone https://github.com/unsignedapps/swift-create-xcframework.git
           cd swift-create-xcframework
-          make install
+          swift build -c release
+          sudo cp .build/release/swift-create-xcframework /usr/local/bin/
 
-
-      - name: Clone the Source Code Repo
-        run: git clone https://github.com/vedantgurav/fieldday-ios-sdk-source-actions-test.git
+      - name: Clone the Source Code Repo with Authentication
+        run: |
+          git clone https://github.com/vedantgurav/fieldday-ios-sdk-source-actions-test.git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build XCFramework and Create Zip
         run: |
@@ -59,6 +53,8 @@ jobs:
           git add Package.swift
           git commit -m "Update Package.swift for version ${{ github.event.inputs.version }}"
           git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release in SDK Repo
         uses: ncipollo/release-action@v1
@@ -73,4 +69,4 @@ jobs:
           body: "Release for version ${{ github.event.inputs.version }}"
 
       - name: Clean Up
-        run: rm -rf fieldday-ios-sdk-source-actions-test fieldday-ios-sdk-actions-test
+        run: rm -rf fieldday-ios-sdk-source-actions-test fieldday-ios-sdk-actions-test swift-create-xcframework
