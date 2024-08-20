@@ -25,7 +25,7 @@ jobs:
           fi
 
       - name: Install swift-create-xcframework
-        run: brew install unsignedapps/tap/swift-create-xcframework
+        run: mint install unsignedapps/swift-create-xcframework
 
       - name: Clone the Source Code Repo
         run: git clone https://github.com/vedantgurav/fieldday-ios-sdk-source-actions-test.git
