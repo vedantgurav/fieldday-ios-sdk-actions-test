@@ -1,61 +1,75 @@
-name: Create Release
+name: Create New Release
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'New Version Number'
+        description: "Enter the new version number (e.g., 1.0.1)"
         required: true
+        default: "1.0.0"
 
 jobs:
-
   create-release:
     runs-on: macos-latest
-    
     steps:
-    - uses: actions/checkout@v2
-      with:
-        repository: vedantgurav/fieldday-ios-sdk-source-actions-test
-        token: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Create XCFramework
-      uses: unsignedapps/swift-create-xcframework@v2
-      with:
-        version: ${{ github.event.inputs.version }}
-        
-    - name: Update Package.swift
-      uses: actions/checkout@v2
-      with:
-        repository: vedantgurav/fieldday-ios-sdk-actions-test
-        
-    - name: Update Package.swift
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        git clone https://github.com/vedantgurav/fieldday-ios-sdk-actions-test.git
-        cd fieldday-ios-sdk
-        
-        current_version=$(grep -oP "version: \"\K[^\"]*" Package.swift)
-        
-        new_version=${{ github.event.inputs.version }}
-        new_checksum=$(cat FieldDay-$new_version.zip.sha256)
-        
-        sed -i '' "s/$current_version/$new_version/g" Package.swift
-        sed -i '' "s/checksum: \"[^\"]*\"/checksum: \"$new_checksum\"/g" Package.swift
-        
-        git add Package.swift
-        git commit -m "Update to version $new_version"
-        git push
-        
-    - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.event.inputs.version }}
-        release_name: ${{ github.event.inputs.version }}
-        draft: false
-        prerelease: false
-        asset_path: FieldDay-${{ github.event.inputs.version }}.zip
-        asset_name: FieldDay-${{ github.event.inputs.version }}.zip
-        asset_content_type: application/zip
+      - name: Checkout the primary repository (Actions Repo)
+        uses: actions/checkout@v3
+        with:
+          repository: vedantgurav/fieldday-ios-sdk-actions-test
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Homebrew (if needed)
+        run: |
+          if ! command -v brew &> /dev/null; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+
+      - name: Install swift-create-xcframework
+        run: brew install unsignedapps/tap/swift-create-xcframework
+
+      - name: Clone the Source Code Repo
+        run: |
+          git clone https://github.com/vedantgurav/fieldday-ios-sdk-source-actions-test.git
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build XCFramework and Create Zip
+        run: |
+          cd fieldday-ios-sdk-source-actions-test
+          swift create-xcframework --zip-version ${{ github.event.inputs.version }}
+
+      - name: Rename Zip File
+        run: |
+          cd fieldday-ios-sdk-source-actions-test
+          mv "fieldday-ios-source-${{ github.event.inputs.version }}.zip" "FieldDay-${{ github.event.inputs.version }}.zip"
+
+      - name: Calculate SHA256 Checksum
+        id: checksum
+        run: |
+          cd fieldday-ios-sdk-source-actions-test
+          shasum -a 256 "FieldDay-${{ github.event.inputs.version }}.zip" | awk '{ print $1 }'
+
+      - name: Update Package.swift in the SDK Repo
+        run: |
+          git clone https://github.com/vedantgurav/fieldday-ios-sdk-actions-test.git
+          cd fieldday-ios-sdk-actions-test
+          sed -i '' "s|https://github.com/fieldday-ai/fieldday-ios-sdk/releases/download/.*/FieldDay-.*.zip|https://github.com/fieldday-ai/fieldday-ios-sdk/releases/download/${{ github.event.inputs.version }}/FieldDay-${{ github.event.inputs.version }}.zip|g" Package.swift
+          sed -i '' "s|checksum: \".*\"|checksum: \"${{ steps.checksum.outputs.checksum }}\"|g" Package.swift
+          git add Package.swift
+          git commit -m "Update Package.swift for version ${{ github.event.inputs.version }}"
+          git push origin main
+
+      - name: Create GitHub Release in SDK Repo
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: vedantgurav/fieldday-ios-sdk-actions-test
+          tag: ${{ github.event.inputs.version }}
+          release_name: ${{ github.event.inputs.version }}
+          draft: false
+          prerelease: false
+          files: fieldday-ios-sdk-source-actions-test/FieldDay-${{ github.event.inputs.version }}.zip
+          body: "Release for version ${{ github.event.inputs.version }}"
+
+      - name: Clean Up
+        run: rm -rf fieldday-ios-sdk-source-actions-test fieldday-ios-sdk-actions-test
