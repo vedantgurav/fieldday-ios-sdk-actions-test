@@ -15,7 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        repository: fieldday-ai/fieldday-ios-sdk-source
+        repository: newmaterialco/fieldday-ios-sdk-source
         
     - name: Create XCFramework
       uses: unsignedapps/swift-create-xcframework@v2
@@ -25,11 +25,11 @@ jobs:
     - name: Update Package.swift
       uses: actions/checkout@v2
       with:
-        repository: fieldday-ai/fieldday-ios-sdk
+        repository: newmaterialco/fieldday-ios-sdk
         
     - name: Update Package.swift
       run: |
-        git clone https://github.com/fieldday-ai/fieldday-ios-sdk.git
+        git clone https://github.com/newmaterialco/fieldday-ios-sdk.git
         cd fieldday-ios-sdk
         
         current_version=$(grep -oP "version: \"\K[^\"]*" Package.swift)
